@@ -31,7 +31,7 @@ fi
 
 # 设置环境变量
 export VLLM_SERVER_URL=${VLLM_SERVER_URL:-http://localhost:8001/v1}
-export VLLM_MODEL_NAME=${VLLM_MODEL_NAME:-meta-llama/Llama-3.1-8B-Instruct}
+export VLLM_MODEL_NAME=${VLLM_MODEL_NAME:-Qwen/Qwen2.5-1.5B-Instruct}
 
 # 启动 vLLM 服务器（后台）
 echo "启动 vLLM 服务器（端口 8001）..."

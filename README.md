@@ -13,7 +13,7 @@
 
 ## 使用模型
 
-- https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct
+- https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct
 
 ## 参考文档
 
@@ -58,29 +58,38 @@
 
 ### 1. 下载模型
 
-项目使用 **Llama 3.1 8B-Instruct** 模型（HuggingFace 格式）。
+项目使用 **Qwen2.5-1.5B-Instruct** 模型（HuggingFace 格式）。
 
 **重要**：vLLM 需要 **HuggingFace 格式**的模型，不支持 GGUF 格式。
 
 **特点**：
-- 模型大小：约16GB（完整模型）或更小的量化版本
-- 内存需求：约8-16GB RAM（取决于模型大小）
+- 模型大小：约 3GB（完整模型）
+- 内存需求：约 4-6GB RAM（CPU 模式）
 - 工具调用：支持原生 tool_calls
-- 推理速度：高性能（GPU 模式）或中等（CPU 模式）
-- **优势**：高性能推理，支持并发请求
+- 推理速度：中等（CPU 模式），适合 CPU 推理
+- **优势**：开源（Apache 2.0）、模型小、速度快、支持工具调用
 
 **下载方法**：
 
 ```bash
-# 方法1：使用 huggingface-cli（推荐）
-pip install huggingface_hub
-mkdir -p models
-huggingface-cli download meta-llama/Llama-3.1-8B-Instruct \
-    --local-dir ./models/llama-3.1-8b-instruct
+# 方法1：使用 Hugging Face CLI（推荐）
+# 安装 Hugging Face CLI
+wget https://hf.co/cli/install.sh
+chmod +x install.sh
+./install.sh
 
-# 方法2：使用 git lfs
+# 下载模型
+mkdir -p models
+hf download Qwen/Qwen2.5-1.5B-Instruct \
+    --local-dir ./models/qwen2.5-1.5b-instruct
+
+# 方法2：使用 Python API
+pip install huggingface_hub
+python -c "from huggingface_hub import snapshot_download; snapshot_download('Qwen/Qwen2.5-1.5B-Instruct', local_dir='./models/qwen2.5-1.5b-instruct')"
+
+# 方法3：使用 git lfs
 git lfs install
-git clone https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct ./models/llama-3.1-8b-instruct
+git clone https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct ./models/qwen2.5-1.5b-instruct
 ```
 
 **注意**：
@@ -120,7 +129,7 @@ docker-compose up
 #### 配置说明
 
 - **BUILD_PROXY**: Docker 构建时的代理设置
-- **VLLM_MODEL_NAME**: vLLM 使用的模型名称（默认：`meta-llama/Llama-3.1-8B-Instruct`）
+- **VLLM_MODEL_NAME**: vLLM 使用的模型名称（默认：`Qwen/Qwen2.5-1.5B-Instruct`）
 - **VLLM_SERVER_URL**: vLLM 服务器地址（默认：`http://vllm-server:8001/v1`）
 
 服务将在以下地址启动：
@@ -139,7 +148,7 @@ docker-compose up
 - 使用 `verbose=True` 可以看到详细的工具调用和响应信息
 
 **注意**：
-- 需要先下载 Llama 3.1 8B 模型文件（HuggingFace 格式）
+- 需要先下载 Qwen2.5-1.5B-Instruct 模型文件（HuggingFace 格式）
 - 工具调用由 LangChain ReAct Agent 自动处理，无需手工解析
 - Agent 最大迭代次数设置为 3 次，避免响应时间过长
 - vLLM 主要针对 GPU 优化，CPU 模式性能较差
@@ -328,7 +337,7 @@ vllm_demo/
 - **vLLM**: >= 0.2.0（高性能 LLM 推理引擎）
 - **LangChain**: >= 0.1.0（Agent 框架和工具管理）
 - **LangChain OpenAI**: >= 0.1.0（OpenAI API 兼容客户端）
-- **AI 模型**: Llama 3.1 8B-Instruct（HuggingFace 格式）
+- **AI 模型**: Qwen2.5-1.5B-Instruct（HuggingFace 格式）
 - **Web 框架**: FastAPI >= 0.104.0（Chat 服务器）
 - **HTTP 客户端**: httpx >= 0.25.0
 - **ASGI 服务器**: uvicorn >= 0.24.0
@@ -337,15 +346,15 @@ vllm_demo/
 
 ## 模型信息
 
-### Llama 3.1 8B-Instruct（默认，推荐）
+### Qwen2.5-1.5B-Instruct（默认，推荐）
 
-- **参数量**: 8B
+- **参数量**: 1.5B
 - **格式**: HuggingFace（不支持 GGUF）
-- **内存需求**: 约8-16GB RAM（取决于量化）
+- **内存需求**: 约4-6GB RAM（CPU 模式）
 - **工具调用**: 支持原生 tool_calls
-- **推理**: GPU 推理（推荐）或 CPU 推理（性能较差）
-- **速度**: 高性能（GPU）或中等（CPU）
-- **优势**: 高性能推理，支持并发请求
+- **推理**: CPU 推理（推荐）或 GPU 推理
+- **速度**: 中等（CPU），适合 CPU 推理
+- **优势**: 开源（Apache 2.0）、模型小、速度快、支持工具调用
 
 ## 运行模式
 
@@ -353,10 +362,10 @@ vllm_demo/
 
 ### 真实LLM模式（默认）
 
-项目使用真实的 Llama 3.1 8B 模型进行推理：
+项目使用真实的 Qwen2.5-1.5B-Instruct 模型进行推理：
 - ✅ **真实LLM推理**：使用 vLLM 实际调用模型
 - ✅ **智能工具调用**：使用 LangChain ReAct Agent 自动处理工具调用
-- ✅ **原生tool_calls支持**：Llama 3.1 8B 支持原生 tool_calls
+- ✅ **原生tool_calls支持**：Qwen2.5-1.5B-Instruct 支持原生 tool_calls
 - ✅ **友好对话**：支持自然语言对话，可以友好回复问候和闲聊
 - ✅ **错误处理**：完善的参数验证和错误提示
 - ⚠️ **需要模型文件**：必须下载模型文件到 `./models/` 目录才能运行
@@ -366,8 +375,8 @@ vllm_demo/
 
 ## 注意事项
 
-1. **模型文件必需**: 必须下载 Llama 3.1 8B 模型文件（HuggingFace 格式）到 `./models/` 目录，否则服务无法启动
-2. **内存要求**: 建议至少 8-16GB 可用内存（取决于模型大小）
+1. **模型文件必需**: 必须下载 Qwen2.5-1.5B-Instruct 模型文件（HuggingFace 格式）到 `./models/` 目录，否则服务无法启动
+2. **内存要求**: 建议至少 4-6GB 可用内存（CPU 模式，取决于模型大小）
 3. **网络连接**: 首次下载模型需要良好的网络连接
 4. **代理环境**: 企业网络环境需要配置代理，详见构建说明
 5. **请求格式**: 使用 curl 时请确保 JSON 使用英文引号，例如 `'{"message": "你好"}'`

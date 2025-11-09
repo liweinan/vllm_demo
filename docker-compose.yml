@@ -18,25 +18,40 @@ services:
       - ./models:/app/models
     environment:
       - PYTHONUNBUFFERED=1
+      # 强制使用 CPU 模式（禁用 GPU）
+      - CUDA_VISIBLE_DEVICES=""
+      - VLLM_TARGET_DEVICE=cpu
       # vLLM CPU 配置（根据官方文档）
-      - VLLM_CPU_KVCACHE_SPACE=4  # KV Cache 空间（GB），默认 4GB
+      - VLLM_CPU_KVCACHE_SPACE=2  # KV Cache 空间（GB），降低到 2GB 以减少内存使用
       - VLLM_CPU_OMP_THREADS_BIND=auto  # 自动绑定 CPU 核心
       - VLLM_CPU_NUM_OF_RESERVED_CPU=1  # 为框架保留 1 个 CPU 核心
+      - VLLM_LOGGING_LEVEL=DEBUG  # 使用 DEBUG 级别以便诊断平台检测问题
+      # HuggingFace 离线模式，强制使用本地文件，避免从网络下载
+      - HF_HUB_OFFLINE=1
+      - TRANSFORMERS_OFFLINE=1
     # Docker 权限配置（根据官方文档，解决 NUMA 相关权限问题）
     security_opt:
       - seccomp=unconfined
     cap_add:
       - SYS_NICE
-    shm_size: 4g  # 共享内存大小
-    # 启动 vLLM OpenAI API 服务器（CPU 模式）
-    # 根据官方文档，使用 vllm serve 命令，并指定 dtype=bfloat16
-    command: >
-      python -m vllm.entrypoints.openai.api_server
-      --model ${VLLM_MODEL_NAME:-meta-llama/Llama-3.1-8B-Instruct}
-      --port 8001
-      --host 0.0.0.0
-      --trust-remote-code
-      --dtype bfloat16
+    shm_size: 6g  # 共享内存大小，增加到 6GB 以支持进程间通信
+    # 内存限制：确保有足够内存用于模型、KV cache 和系统开销
+    # 模型 2.9GB + KV cache 4GB + 系统开销 1GB + 缓冲 3GB = 约 11GB
+    deploy:
+      resources:
+        limits:
+          memory: 12G
+        reservations:
+          memory: 10G
+    # 不自动启动服务，方便手工进入容器排查问题
+    # 覆盖基础镜像的 entrypoint，使用 bash 保持容器运行
+    entrypoint: ["/bin/bash"]
+    stdin_open: true  # 保持 STDIN 打开
+    tty: true  # 分配伪终端
+    # 进入容器后可以执行：
+    #   /app/start_vllm_server.sh /app/models/qwen2.5-1.5b-instruct 8001 0.0.0.0
+    # 或者直接：
+    #   python -m vllm.entrypoints.openai.api_server /app/models/qwen2.5-1.5b-instruct --port 8001 --host 0.0.0.0 --trust-remote-code --dtype bfloat16
     restart: unless-stopped
     networks:
       - vllm-langchain-network
@@ -63,7 +78,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - VLLM_SERVER_URL=http://vllm-server:8001/v1
-      - VLLM_MODEL_NAME=${VLLM_MODEL_NAME:-meta-llama/Llama-3.1-8B-Instruct}
+      - VLLM_MODEL_NAME=${VLLM_MODEL_NAME:-Qwen/Qwen2.5-1.5B-Instruct}
       # 清除可能残留的代理环境变量（避免影响容器间通信）
       - http_proxy=
       - https_proxy=

@@ -22,11 +22,29 @@ FROM vllm-cpu-env:latest
 # 设置工作目录
 WORKDIR /app
 
+# 复制并运行必要的补丁脚本（仅修复 CPU cache ops 问题）
+# 1. 修复 _custom_ops：为 reshape_and_cache 添加错误处理
+COPY patch_custom_ops.py /app/patch_custom_ops.py
+RUN python3 /app/patch_custom_ops.py && rm /app/patch_custom_ops.py
+
+# 2. 修复 CPU attention：为 reshape_and_cache 添加错误处理
+COPY patch_cpu_attn.py /app/patch_cpu_attn.py
+RUN python3 /app/patch_cpu_attn.py && rm /app/patch_cpu_attn.py
+
+# 3. 修复 CPU attention：为 paged_attention_v1 添加错误处理
+COPY patch_paged_attention.py /app/patch_paged_attention.py
+RUN python3 /app/patch_paged_attention.py && rm /app/patch_paged_attention.py
+
 # 创建模型目录
 RUN mkdir -p /app/models
+
+# 复制启动脚本
+COPY start_vllm_server.sh /app/start_vllm_server.sh
+RUN chmod +x /app/start_vllm_server.sh
 
 # 暴露端口
 EXPOSE 8001
 
-# 默认启动命令（可以通过 docker-compose.yml 覆盖）
-CMD ["python", "-m", "vllm.entrypoints.openai.api_server", "--host", "0.0.0.0", "--port", "8001"]
+# 默认命令：启动 bash shell 保持容器运行，方便手工进入容器排查问题
+# 进入容器后可以手工拷贝并执行启动脚本，或直接运行命令
+CMD ["/bin/bash"]

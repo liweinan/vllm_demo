@@ -57,7 +57,7 @@ tools: List[Any] = []
 
 # vLLM服务器配置
 vllm_server_url = os.getenv("VLLM_SERVER_URL", "http://vllm-server:8001/v1")
-vllm_model_name = os.getenv("VLLM_MODEL_NAME", "meta-llama/Llama-3.1-8B-Instruct")
+vllm_model_name = os.getenv("VLLM_MODEL_NAME", "Qwen/Qwen2.5-1.5B-Instruct")
 
 # 请求模型
 class ChatRequest(BaseModel):
