@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-修复 vLLM CPU attention 后端：为 reshape_and_cache 添加错误处理和 fallback
+Fix vLLM CPU attention backend: add error handling and fallback for reshape_and_cache
 """
 import os
 import sys
 
 def patch_cpu_attn():
-    """在 vLLM 的 cpu_attn.py 中为 write_to_paged_cache 添加错误处理"""
-    # 查找 vllm.v1.attention.backends.cpu_attn 文件
+    """Add error handling for write_to_paged_cache in vLLM's cpu_attn.py"""
+    # Find vllm.v1.attention.backends.cpu_attn file
     cpu_attn_path = None
     for path in sys.path:
         test_path = os.path.join(path, 'vllm', 'v1', 'attention', 'backends', 'cpu_attn.py')
@@ -19,16 +19,16 @@ def patch_cpu_attn():
         print('Warning: vllm.v1.attention.backends.cpu_attn.py not found')
         return False
     
-    # 读取文件内容
+    # Read file content
     with open(cpu_attn_path, 'r') as f:
         content = f.read()
     
-    # 检查是否已经应用了补丁
+    # Check if patch already applied
     if 'def _reshape_and_cache_fallback' in content:
         print(f'Patch already applied to {cpu_attn_path}')
         return True
     
-    # 查找要替换的代码
+    # Find code to replace
     old_write_to_paged_cache = '''    @staticmethod
     def write_to_paged_cache(
         key: torch.Tensor,
@@ -52,7 +52,7 @@ def patch_cpu_attn():
             v_scale,
         )'''
     
-    # 新的代码（添加错误处理和 PyTorch fallback）
+    # New code (add error handling and PyTorch fallback)
     new_write_to_paged_cache = '''    @staticmethod
     def _reshape_and_cache_fallback(
         key: torch.Tensor,
@@ -163,23 +163,23 @@ def patch_cpu_attn():
                         f"Please ensure vLLM was built with CPU support or use IPEX."
                     ) from e3'''
     
-    # 替换
+    # Replace
     if old_write_to_paged_cache in content:
         content = content.replace(old_write_to_paged_cache, new_write_to_paged_cache)
     else:
         print(f'Warning: Target code not found in {cpu_attn_path}')
-        # 尝试更灵活的匹配
+        # Try more flexible matching
         import re
         pattern = r'(@staticmethod\s+def write_to_paged_cache\([^)]+\):\s+ops\.reshape_and_cache\([^)]+\))'
         match = re.search(pattern, content, re.DOTALL)
         if match:
-            # 更复杂的替换逻辑
+            # More complex replacement logic
             print('Found pattern with regex, but manual replacement needed')
             return False
         else:
             return False
     
-    # 写回文件
+    # Write back to file
     with open(cpu_attn_path, 'w') as f:
         f.write(content)
     

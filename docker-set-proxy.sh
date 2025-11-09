@@ -1,11 +1,11 @@
 #!/bin/sh
-# 辅助脚本：设置代理环境变量并返回转换后的地址
-# 用法: 
-#   1. 获取转换后的地址: BUILD_PROXY_CONVERTED=$(docker-set-proxy.sh "$BUILD_PROXY")
-#   2. 设置环境变量: . docker-set-proxy.sh "$BUILD_PROXY"
-# 注意：只对 localhost 进行替换，其他代理地址（如 squid.corp.redhat.com）保持不变
+# Helper script: set proxy environment variables and return converted address
+# Usage: 
+#   1. Get converted address: BUILD_PROXY_CONVERTED=$(docker-set-proxy.sh "$BUILD_PROXY")
+#   2. Set environment variables: . docker-set-proxy.sh "$BUILD_PROXY"
+# Note: Only replace localhost, other proxy addresses (like squid.corp.redhat.com) remain unchanged
 if [ -n "$1" ]; then
-    # 只替换 localhost，其他代理地址保持不变
+    # Only replace localhost, other proxy addresses remain unchanged
     if echo "$1" | grep -q "localhost"; then
         BUILD_PROXY_CONVERTED=$(echo "$1" | sed 's|localhost|host.docker.internal|g')
     else
@@ -16,7 +16,7 @@ if [ -n "$1" ]; then
            HTTP_PROXY="$BUILD_PROXY_CONVERTED" \
            HTTPS_PROXY="$BUILD_PROXY_CONVERTED" \
            BUILD_PROXY_CONVERTED="$BUILD_PROXY_CONVERTED"
-    # 输出转换后的地址（用于命令调用）
+    # Output converted address (for command calls)
     echo "$BUILD_PROXY_CONVERTED"
 fi
 

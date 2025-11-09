@@ -1,10 +1,10 @@
-# vLLM CPU 服务 Dockerfile
-# 根据官方文档：https://docs.vllm.ai/en/stable/getting_started/installation/cpu.html
+# vLLM CPU Service Dockerfile
+# According to official docs: https://docs.vllm.ai/en/stable/getting_started/installation/cpu.html
 # 
-# 方案1：使用本地构建的 vLLM CPU 镜像（推荐，如果已构建）
+# Option 1: Use locally built vLLM CPU image (recommended, if already built)
 FROM vllm-cpu-env:latest
 
-# 方案2：从源码构建（如果本地镜像不可用，取消下面的注释并注释掉上面的 FROM）
+# Option 2: Build from source (if local image unavailable, uncomment below and comment out above FROM)
 # FROM python:3.11-slim
 # ARG BUILD_PROXY
 # RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -19,32 +19,32 @@ FROM vllm-cpu-env:latest
 #     VLLM_TARGET_DEVICE=cpu pip install . --no-build-isolation && \
 #     cd .. && rm -rf vllm_source
 
-# 设置工作目录
+# Set working directory
 WORKDIR /app
 
-# 复制并运行必要的补丁脚本（仅修复 CPU cache ops 问题）
-# 1. 修复 _custom_ops：为 reshape_and_cache 添加错误处理
+# Copy and run necessary patch scripts (only fix CPU cache ops issues)
+# 1. Fix _custom_ops: add error handling for reshape_and_cache
 COPY patch_custom_ops.py /app/patch_custom_ops.py
 RUN python3 /app/patch_custom_ops.py && rm /app/patch_custom_ops.py
 
-# 2. 修复 CPU attention：为 reshape_and_cache 添加错误处理
+# 2. Fix CPU attention: add error handling for reshape_and_cache
 COPY patch_cpu_attn.py /app/patch_cpu_attn.py
 RUN python3 /app/patch_cpu_attn.py && rm /app/patch_cpu_attn.py
 
-# 3. 修复 CPU attention：为 paged_attention_v1 添加错误处理
+# 3. Fix CPU attention: add error handling for paged_attention_v1
 COPY patch_paged_attention.py /app/patch_paged_attention.py
 RUN python3 /app/patch_paged_attention.py && rm /app/patch_paged_attention.py
 
-# 创建模型目录
+# Create model directory
 RUN mkdir -p /app/models
 
-# 复制启动脚本
+# Copy startup script
 COPY start_vllm_server.sh /app/start_vllm_server.sh
 RUN chmod +x /app/start_vllm_server.sh
 
-# 暴露端口
+# Expose port
 EXPOSE 8001
 
-# 默认命令：启动 bash shell 保持容器运行，方便手工进入容器排查问题
-# 进入容器后可以手工拷贝并执行启动脚本，或直接运行命令
+# Default command: start bash shell to keep container running, convenient for manual container debugging
+# After entering container, can manually copy and execute startup script, or run commands directly
 CMD ["/bin/bash"]

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-修复 vLLM CPU attention：为 paged_attention_v1 添加错误处理和 fallback
+Fix vLLM CPU attention: add error handling and fallback for paged_attention_v1
 """
 import os
 import sys
 
 def patch_paged_attention():
-    """在 vLLM 的 cpu_attn.py 中为 forward_decode 添加错误处理"""
-    # 查找 vllm.v1.attention.backends.cpu_attn 文件
+    """Add error handling for forward_decode in vLLM's cpu_attn.py"""
+    # Find vllm.v1.attention.backends.cpu_attn file
     cpu_attn_path = None
     for path in sys.path:
         test_path = os.path.join(path, 'vllm', 'v1', 'attention', 'backends', 'cpu_attn.py')
@@ -19,16 +19,16 @@ def patch_paged_attention():
         print('Warning: vllm.v1.attention.backends.cpu_attn.py not found')
         return False
     
-    # 读取文件内容
+    # Read file content
     with open(cpu_attn_path, 'r') as f:
         content = f.read()
     
-    # 检查是否已经应用了补丁
+    # Check if patch already applied
     if 'def _paged_attention_v1_fallback' in content:
         print(f'Patch already applied to {cpu_attn_path}')
         return True
     
-    # 查找要替换的代码（_PagedAttention.forward_decode）
+    # Find code to replace (_PagedAttention.forward_decode)
     old_forward_decode = '''    @staticmethod
     def forward_decode(
         output: torch.Tensor,
@@ -75,7 +75,7 @@ def patch_paged_attention():
             blocksparse_head_sliding_step,
         )'''
     
-    # 新的代码（添加错误处理和 PyTorch fallback）
+    # New code (add error handling and PyTorch fallback)
     new_forward_decode = '''    @staticmethod
     def _paged_attention_v1_fallback(
         output: torch.Tensor,
@@ -242,12 +242,12 @@ def patch_paged_attention():
                     f"Please ensure vLLM was built with CPU support or use IPEX."
                 ) from e2'''
     
-    # 替换
+    # Replace
     if old_forward_decode in content:
         content = content.replace(old_forward_decode, new_forward_decode)
     else:
         print(f'Warning: Target code not found in {cpu_attn_path}')
-        # 尝试更灵活的匹配
+        # Try more flexible matching
         import re
         pattern = r'(@staticmethod\s+def forward_decode\([^)]+\):\s+block_size = value_cache\.shape\[3\]\s+ops\.paged_attention_v1\([^)]+\))'
         match = re.search(pattern, content, re.DOTALL)
@@ -257,7 +257,7 @@ def patch_paged_attention():
         else:
             return False
     
-    # 写回文件
+    # Write back to file
     with open(cpu_attn_path, 'w') as f:
         f.write(content)
     

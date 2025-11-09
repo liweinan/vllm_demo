@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-修复 vLLM _custom_ops：为 reshape_and_cache 添加错误处理和 fallback
+Fix vLLM _custom_ops: add error handling and fallback for reshape_and_cache
 """
 import os
 import sys
 
 def patch_custom_ops():
-    """在 vLLM 的 _custom_ops.py 中为 reshape_and_cache 添加错误处理"""
-    # 查找 vllm._custom_ops 文件
+    """Add error handling for reshape_and_cache in vLLM's _custom_ops.py"""
+    # Find vllm._custom_ops file
     custom_ops_path = None
     for path in sys.path:
         test_path = os.path.join(path, 'vllm', '_custom_ops.py')
@@ -19,17 +19,17 @@ def patch_custom_ops():
         print('Warning: vllm._custom_ops.py not found')
         return False
     
-    # 读取文件内容
+    # Read file content
     with open(custom_ops_path, 'r') as f:
         content = f.read()
     
-    # 检查是否已经应用了补丁（检查新的逻辑）
+    # Check if patch already applied (check new logic)
     if 'cache_ops_candidates' in content and 'getattr(cache_ops, \'reshape_and_cache\', None)' in content:
         print(f'Patch already applied to {custom_ops_path}')
         return True
     
-    # 查找要替换的代码（可能是原始版本或旧补丁版本）
-    # 先尝试匹配旧补丁版本
+    # Find code to replace (could be original version or old patch version)
+    # First try to match old patch version
     old_reshape_and_cache_v1 = '''def reshape_and_cache(
     key: torch.Tensor,
     value: torch.Tensor,
@@ -79,7 +79,7 @@ def patch_custom_ops():
         "Please rebuild vLLM with CPU support or use IPEX."
     ) from last_error'''
     
-    # 原始版本（如果旧补丁不存在）
+    # Original version (if old patch doesn't exist)
     old_reshape_and_cache_v0 = '''def reshape_and_cache(
     key: torch.Tensor,
     value: torch.Tensor,
@@ -101,8 +101,8 @@ def patch_custom_ops():
         v_scale,
     )'''
     
-    # 新的代码（添加错误处理，尝试不同的命名空间）
-    # 注意：不使用 logger，直接 raise，避免导入问题
+    # New code (add error handling, try different namespaces)
+    # Note: don't use logger, directly raise, avoid import issues
     new_reshape_and_cache = '''def reshape_and_cache(
     key: torch.Tensor,
     value: torch.Tensor,
@@ -154,7 +154,7 @@ def patch_custom_ops():
         f"Please ensure vLLM was built with CPU support, or use IPEX."
     ) from last_error'''
     
-    # 替换（先尝试旧补丁版本，再尝试原始版本）
+    # Replace (first try old patch version, then original version)
     if old_reshape_and_cache_v1 in content:
         content = content.replace(old_reshape_and_cache_v1, new_reshape_and_cache)
         print(f'Replaced old patch version in {custom_ops_path}')
@@ -164,18 +164,18 @@ def patch_custom_ops():
     else:
         print(f'Warning: Target code not found in {custom_ops_path}')
         print('Trying to find reshape_and_cache function...')
-        # 尝试使用正则表达式或更灵活的匹配
+        # Try using regex or more flexible matching
         import re
         pattern = r'def reshape_and_cache\([^)]+\):\s+.*?torch\.ops\._C_cache_ops\.reshape_and_cache'
         if re.search(pattern, content, re.DOTALL):
-            # 找到匹配，但需要更精确的替换
+            # Found match, but need more precise replacement
             print('Found reshape_and_cache but pattern matching failed. Manual fix needed.')
             return False
         else:
             print('Could not find reshape_and_cache function to patch.')
             return False
-    
-    # 写回文件
+
+    # Write back to file
     with open(custom_ops_path, 'w') as f:
         f.write(content)
     

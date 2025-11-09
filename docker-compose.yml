@@ -1,11 +1,11 @@
 services:
-  # vLLM服务器 - 提供LLM推理服务（OpenAI API兼容接口）
-  # 根据官方文档：https://docs.vllm.ai/en/stable/getting_started/installation/cpu.html
-  # 注意：
-  # - 在 macOS (ARM64) 上，需要 platform: linux/amd64 通过 Rosetta 2 运行 x86_64 容器
-  # - 在 Linux x86_64 上，不需要 platform 限制，使用原生架构
+  # vLLM Server - Provides LLM inference service (OpenAI API compatible interface)
+  # According to official docs: https://docs.vllm.ai/en/stable/getting_started/installation/cpu.html
+  # Note:
+  # - On macOS (ARM64), need platform: linux/amd64 to run x86_64 containers via Rosetta 2
+  # - On Linux x86_64, no platform restriction needed, use native architecture
   vllm-server:
-    # platform: linux/amd64  # 仅在 macOS 上需要，Linux x86_64 上注释掉
+    # platform: linux/amd64  # Only needed on macOS, comment out on Linux x86_64
     build:
       context: .
       dockerfile: Dockerfile.vllm
@@ -18,44 +18,44 @@ services:
       - ./models:/app/models
     environment:
       - PYTHONUNBUFFERED=1
-      # 强制使用 CPU 模式（禁用 GPU）
+      # Force CPU mode (disable GPU)
       - CUDA_VISIBLE_DEVICES=""
       - VLLM_TARGET_DEVICE=cpu
-      # vLLM CPU 配置（根据官方文档）
-      - VLLM_CPU_KVCACHE_SPACE=2  # KV Cache 空间（GB），降低到 2GB 以减少内存使用
-      - VLLM_CPU_OMP_THREADS_BIND=auto  # 自动绑定 CPU 核心
-      - VLLM_CPU_NUM_OF_RESERVED_CPU=1  # 为框架保留 1 个 CPU 核心
-      - VLLM_LOGGING_LEVEL=DEBUG  # 使用 DEBUG 级别以便诊断平台检测问题
-      # HuggingFace 离线模式，强制使用本地文件，避免从网络下载
+      # vLLM CPU configuration (according to official docs)
+      - VLLM_CPU_KVCACHE_SPACE=2  # KV Cache space (GB), reduced to 2GB to reduce memory usage
+      - VLLM_CPU_OMP_THREADS_BIND=auto  # Auto bind CPU cores
+      - VLLM_CPU_NUM_OF_RESERVED_CPU=1  # Reserve 1 CPU core for framework
+      - VLLM_LOGGING_LEVEL=DEBUG  # Use DEBUG level for platform detection diagnostics
+      # HuggingFace offline mode, force using local files, avoid network download
       - HF_HUB_OFFLINE=1
       - TRANSFORMERS_OFFLINE=1
-    # Docker 权限配置（根据官方文档，解决 NUMA 相关权限问题）
+    # Docker permission configuration (according to official docs, solve NUMA-related permission issues)
     security_opt:
       - seccomp=unconfined
     cap_add:
       - SYS_NICE
-    shm_size: 6g  # 共享内存大小，增加到 6GB 以支持进程间通信
-    # 内存限制：确保有足够内存用于模型、KV cache 和系统开销
-    # 模型 2.9GB + KV cache 4GB + 系统开销 1GB + 缓冲 3GB = 约 11GB
+    shm_size: 6g  # Shared memory size, increased to 6GB to support inter-process communication
+    # Memory limits: ensure sufficient memory for model, KV cache and system overhead
+    # Model 2.9GB + KV cache 4GB + system overhead 1GB + buffer 3GB = ~11GB
     deploy:
       resources:
         limits:
           memory: 12G
         reservations:
           memory: 10G
-    # 不自动启动服务，方便手工进入容器排查问题
-    # 覆盖基础镜像的 entrypoint，使用 bash 保持容器运行
+    # Don't auto-start service, convenient for manual container debugging
+    # Override base image entrypoint, use bash to keep container running
     entrypoint: ["/bin/bash"]
-    stdin_open: true  # 保持 STDIN 打开
-    tty: true  # 分配伪终端
-    # 进入容器后可以执行：
+    stdin_open: true  # Keep STDIN open
+    tty: true  # Allocate pseudo-TTY
+    # After entering container, can execute:
     #   /app/start_vllm_server.sh /app/models/qwen2.5-1.5b-instruct 8001 0.0.0.0
-    # 或者直接：
+    # Or directly:
     #   python -m vllm.entrypoints.openai.api_server /app/models/qwen2.5-1.5b-instruct --port 8001 --host 0.0.0.0 --trust-remote-code --dtype bfloat16
     restart: unless-stopped
     networks:
       - vllm-langchain-network
-    # 如果需要 GPU 支持，取消下面的注释并移除 CPU 相关配置
+    # If GPU support is needed, uncomment below and remove CPU-related configuration
     # deploy:
     #   resources:
     #     reservations:
@@ -64,7 +64,7 @@ services:
     #           count: 1
     #           capabilities: [gpu]
 
-  # FastAPI Chat服务器 - 提供聊天服务
+  # FastAPI Chat Server - Provides chat service
   chat-server:
     build:
       context: .
@@ -79,7 +79,7 @@ services:
       - PYTHONUNBUFFERED=1
       - VLLM_SERVER_URL=http://vllm-server:8001/v1
       - VLLM_MODEL_NAME=${VLLM_MODEL_NAME:-Qwen/Qwen2.5-1.5B-Instruct}
-      # 清除可能残留的代理环境变量（避免影响容器间通信）
+      # Clear potentially leftover proxy environment variables (avoid affecting inter-container communication)
       - http_proxy=
       - https_proxy=
       - HTTP_PROXY=

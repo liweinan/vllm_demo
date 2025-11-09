@@ -1,6 +1,6 @@
 #!/bin/bash
-# vLLM 服务器启动脚本
-# 用于在容器内启动 vLLM OpenAI API 服务器
+# vLLM Server Startup Script
+# Used to start vLLM OpenAI API server inside container
 
 set -e
 
@@ -13,14 +13,14 @@ echo "Model: $MODEL_PATH"
 echo "Host: $HOST"
 echo "Port: $PORT"
 
-# 设置 HuggingFace 离线模式，强制使用本地文件，避免从网络下载
+# Set HuggingFace offline mode, force using local files, avoid network download
 export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 
-# 使用 python -m 方式启动 vLLM OpenAI API 服务器
-# 减少 max_model_len 以适应 KV cache 内存限制
-# 禁用自定义操作以避免 CPU 版本的自定义操作缺失问题
-# 通过 --compilation-config 设置 custom_ops=none
+# Start vLLM OpenAI API server using python -m
+# Reduce max_model_len to fit KV cache memory limits
+# Disable custom operations to avoid missing custom ops issues in CPU version
+# Set custom_ops=none via --compilation-config
 exec python -m vllm.entrypoints.openai.api_server \
     --model "$MODEL_PATH" \
     --port "$PORT" \

@@ -1,167 +1,167 @@
-# vLLM + LangChain 极简示例
+# vLLM + LangChain Minimal Example
 
-这是一个基于 vLLM + LangChain 的极简示例，展示了如何构建一个完整的工具调用系统：
-- **vLLM 服务器**：提供 LLM 推理服务（通过 OpenAI API 兼容接口）
-- **FastAPI Chat 服务器**：提供聊天服务，使用 LangChain Agent 自动处理工具调用
+This is a minimal example based on vLLM + LangChain, demonstrating how to build a complete tool calling system:
+- **vLLM Server**: Provides LLM inference service (via OpenAI API compatible interface)
+- **FastAPI Chat Server**: Provides chat service, using LangChain Agent to automatically handle tool calls
 
-## 相关项目
+## Related Projects
 
 - https://github.com/fastapi/fastapi
 - https://github.com/vllm-project/vllm
 - https://github.com/langchain-ai/langchain
 - https://github.com/huggingface/transformers
 
-## 使用模型
+## Model Used
 
 - https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct
 
-## 参考文档
+## Reference Documentation
 
 - https://docs.vllm.ai/
 - https://python.langchain.com/
 - https://python.langchain.com/docs/modules/agents/
 - https://www.ibm.com/think/topics/react-agent
 
-## 功能特性
+## Features
 
-- 🤖 **真实的LLM推理**：使用 vLLM 提供高性能 LLM 推理服务
-- 💬 **友好对话**：支持自然语言对话，可以友好地回复问候和闲聊
-- 🛠️ **智能工具调用**：使用 LangChain ReAct Agent 自动处理工具调用
-- 🔌 **LangChain 集成**：直接定义 LangChain Tool，无需 MCP 协议
-- 🐳 Docker 容器化部署：支持多服务架构（vLLM 服务器 + Chat 服务器）
-- 🌐 HTTP API 接口，支持 curl 交互
-- ⚡ 基于 vLLM 的高性能推理（支持 GPU 和 CPU）
-- 🛡️ 完善的错误处理和友好的错误提示
+- 🤖 **Real LLM Inference**: Uses vLLM to provide high-performance LLM inference service
+- 💬 **Friendly Conversation**: Supports natural language conversation, can reply to greetings and casual chat
+- 🛠️ **Smart Tool Calling**: Uses LangChain ReAct Agent to automatically handle tool calls
+- 🔌 **LangChain Integration**: Directly define LangChain Tools, no MCP protocol needed
+- 🐳 **Docker Containerized Deployment**: Supports multi-service architecture (vLLM server + Chat server)
+- 🌐 **HTTP API Interface**: Supports curl interaction
+- ⚡ **High-performance inference** based on vLLM (supports GPU and CPU)
+- 🛡️ **Comprehensive error handling** and friendly error messages
 
-## 快速开始
+## Quick Start
 
-### ⚠️ macOS (Apple Silicon) 用户注意
+### ⚠️ macOS (Apple Silicon) Users Note
 
-**重要**：在 macOS (ARM64) 上运行 vLLM CPU 版本需要特殊配置：
+**Important**: Running vLLM CPU version on macOS (ARM64) requires special configuration:
 
-1. **架构兼容性**：
-   - vLLM CPU 版本主要支持 x86_64 架构
-   - macOS 通过 `platform: linux/amd64` 使用 Rosetta 2 仿真运行 x86_64 容器
-   - 性能可能比原生 Linux 稍慢
+1. **Architecture Compatibility**:
+   - vLLM CPU version mainly supports x86_64 architecture
+   - macOS uses `platform: linux/amd64` with Rosetta 2 emulation to run x86_64 containers
+   - Performance may be slightly slower than native Linux
 
-2. **Docker 配置**：
-   - 确保 Docker Desktop 已启用 "Use Rosetta for x86/amd64 emulation"
-   - `docker-compose.yml` 中已配置 `platform: linux/amd64`
+2. **Docker Configuration**:
+   - Ensure Docker Desktop has "Use Rosetta for x86/amd64 emulation" enabled
+   - `docker-compose.yml` is configured with `platform: linux/amd64`
 
-3. **构建 CPU 镜像**：
-   - `Dockerfile.vllm` 会从源码构建 CPU 版本（首次构建需要 30-60 分钟）
-   - 或使用预构建的 CPU 镜像（如果可用）
+3. **Building CPU Image**:
+   - `Dockerfile.vllm` will build CPU version from source (first build takes 30-60 minutes)
+   - Or use pre-built CPU image (if available)
 
-4. **替代方案**：
-   - 如果 vLLM CPU 构建失败，考虑使用其他 CPU 友好的推理引擎
-   - 或在 Linux 服务器或云 GPU 上运行
+4. **Alternatives**:
+   - If vLLM CPU build fails, consider using other CPU-friendly inference engines
+   - Or run on Linux server or cloud GPU
 
-### 1. 下载模型
+### 1. Download Model
 
-项目使用 **Qwen2.5-1.5B-Instruct** 模型（HuggingFace 格式）。
+The project uses **Qwen2.5-1.5B-Instruct** model (HuggingFace format).
 
-**重要**：vLLM 需要 **HuggingFace 格式**的模型，不支持 GGUF 格式。
+**Important**: vLLM requires **HuggingFace format** models, does not support GGUF format.
 
-**特点**：
-- 模型大小：约 3GB（完整模型）
-- 内存需求：约 4-6GB RAM（CPU 模式）
-- 工具调用：支持原生 tool_calls
-- 推理速度：中等（CPU 模式），适合 CPU 推理
-- **优势**：开源（Apache 2.0）、模型小、速度快、支持工具调用
+**Characteristics**:
+- Model size: ~3GB (full model)
+- Memory requirement: ~4-6GB RAM (CPU mode)
+- Tool calling: Supports native tool_calls
+- Inference speed: Medium (CPU mode), suitable for CPU inference
+- **Advantages**: Open source (Apache 2.0), small model, fast, supports tool calling
 
-**下载方法**：
+**Download Methods**:
 
 ```bash
-# 方法1：使用 Hugging Face CLI（推荐）
-# 安装 Hugging Face CLI
+# Method 1: Using Hugging Face CLI (Recommended)
+# Install Hugging Face CLI
 wget https://hf.co/cli/install.sh
 chmod +x install.sh
 ./install.sh
 
-# 下载模型
+# Download model
 mkdir -p models
 hf download Qwen/Qwen2.5-1.5B-Instruct \
     --local-dir ./models/qwen2.5-1.5b-instruct
 
-# 方法2：使用 Python API
+# Method 2: Using Python API
 pip install huggingface_hub
 python -c "from huggingface_hub import snapshot_download; snapshot_download('Qwen/Qwen2.5-1.5B-Instruct', local_dir='./models/qwen2.5-1.5b-instruct')"
 
-# 方法3：使用 git lfs
+# Method 3: Using git lfs
 git lfs install
 git clone https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct ./models/qwen2.5-1.5b-instruct
 ```
 
-**注意**：
-- 模型文件需要放在 `./models/` 目录下
-- 模型路径可以通过环境变量 `VLLM_MODEL_NAME` 配置
-- 如果使用量化版本，需要确保 vLLM 支持该格式
+**Note**:
+- Model files need to be placed in `./models/` directory
+- Model path can be configured via environment variable `VLLM_MODEL_NAME`
+- If using quantized version, ensure vLLM supports that format
 
-### 2. 构建和启动
+### 2. Build and Start
 
-#### 方法一：使用构建脚本（推荐）
+#### Method 1: Using Build Script (Recommended)
 
 ```bash
-# 1. 配置代理（可选）
+# 1. Configure proxy (optional)
 cp env.example .env
-# 编辑 .env 文件，设置你的代理配置和模型名称
+# Edit .env file, set your proxy configuration and model name
 
-# 2. 使用构建脚本
+# 2. Use build script
 ./build.sh
 
-# 3. 启动服务
+# 3. Start services
 docker-compose up
 ```
 
-#### 方法二：手动构建
+#### Method 2: Manual Build
 
 ```bash
-# 无代理环境
+# No proxy environment
 docker-compose build
 docker-compose up
 
-# 企业代理环境
+# Enterprise proxy environment
 export BUILD_PROXY=http://your-proxy:port
 docker-compose build
 docker-compose up
 ```
 
-#### 配置说明
+#### Configuration
 
-- **BUILD_PROXY**: Docker 构建时的代理设置
-- **VLLM_MODEL_NAME**: vLLM 使用的模型名称（默认：`Qwen/Qwen2.5-1.5B-Instruct`）
-- **VLLM_SERVER_URL**: vLLM 服务器地址（默认：`http://vllm-server:8001/v1`）
+- **BUILD_PROXY**: Proxy settings for Docker build
+- **VLLM_MODEL_NAME**: Model name used by vLLM (default: `Qwen/Qwen2.5-1.5B-Instruct`)
+- **VLLM_SERVER_URL**: vLLM server address (default: `http://vllm-server:8001/v1`)
 
-服务将在以下地址启动：
-- **vLLM 服务器**：`http://localhost:8001`（提供 OpenAI API 兼容接口）
-- **Chat 服务器**：`http://localhost:8000`（提供聊天服务）
+Services will start at:
+- **vLLM Server**: `http://localhost:8001` (provides OpenAI API compatible interface)
+- **Chat Server**: `http://localhost:8000` (provides chat service)
 
-**启动验证**：
-启动后查看日志，应该看到：
-- vLLM 服务器：`Uvicorn running on http://0.0.0.0:8001`
-- Chat 服务器：`vLLM客户端创建成功`
-- Chat 服务器：`工具创建完成，共 3 个工具`
-- Chat 服务器：`Agent初始化完成，工具调用将由LangChain自动处理`
+**Startup Verification**:
+After startup, check logs, you should see:
+- vLLM server: `Uvicorn running on http://0.0.0.0:8001`
+- Chat server: `vLLM client created successfully`
+- Chat server: `Tools created, total 3 tools`
+- Chat server: `Agent initialization complete, tool calls will be automatically handled by LangChain`
 
-**运行时日志**：
-- LangChain Agent 会自动处理工具调用，日志会显示工具调用过程
-- 使用 `verbose=True` 可以看到详细的工具调用和响应信息
+**Runtime Logs**:
+- LangChain Agent will automatically handle tool calls, logs will show tool call process
+- Using `verbose=True` you can see detailed tool call and response information
 
-**注意**：
-- 需要先下载 Qwen2.5-1.5B-Instruct 模型文件（HuggingFace 格式）
-- 工具调用由 LangChain ReAct Agent 自动处理，无需手工解析
-- Agent 最大迭代次数设置为 3 次，避免响应时间过长
-- vLLM 主要针对 GPU 优化，CPU 模式性能较差
+**Note**:
+- Need to download Qwen2.5-1.5B-Instruct model files first (HuggingFace format)
+- Tool calls are automatically handled by LangChain ReAct Agent, no manual parsing needed
+- Agent max iterations set to 3 to avoid long response times
+- vLLM is mainly optimized for GPU, CPU mode performance is poor
 
-### 3. 测试接口
+### 3. Test API
 
-#### 健康检查
+#### Health Check
 
 ```bash
 curl http://localhost:8000/health
 ```
 
-**预期输出**:
+**Expected Output**:
 ```json
 {
   "status": "healthy",
@@ -171,79 +171,79 @@ curl http://localhost:8000/health
 }
 ```
 
-**注意**：如果 `agent_loaded` 为 `false`，说明 Agent 初始化失败；如果 `vllm_available` 为 `false`，说明无法连接到 vLLM 服务器。
+**Note**: If `agent_loaded` is `false`, Agent initialization failed; if `vllm_available` is `false`, cannot connect to vLLM server.
 
-#### 查看可用工具
+#### List Available Tools
 
 ```bash
 curl http://localhost:8000/tools
 ```
 
-#### 聊天测试
+#### Chat Test
 
-**注意**: 
-1. 如果中文显示为 Unicode 转义字符（如 `\u6211`），可以使用 `jq` 或 `python3 -m json.tool` 来正确显示
-2. 请确保使用**英文引号**，而不是中文引号（""）
+**Note**: 
+1. If Chinese characters display as Unicode escape sequences (like `\u6211`), you can use `jq` or `python3 -m json.tool` to display correctly
+2. Make sure to use **English quotes**, not Chinese quotes ("")
 
 ```bash
-# 问候对话（自然语言回复）
+# Greeting conversation (natural language reply)
 curl -X POST http://localhost:8000/chat \
   -H "Content-Type: application/json" \
-  -d '{"message": "你好"}' | jq .
-# 预期输出:
+  -d '{"message": "Hello"}' | jq .
+# Expected output:
 # {
-#   "raw_response": "你好！我是一个数学计算助手...",
+#   "raw_response": "Hello! I am a math calculation assistant...",
 #   "tools_available": ["add_numbers", "multiply_numbers", "calculate_expression"]
 # }
 
-# 简单加法（工具调用）
+# Simple addition (tool call)
 curl -X POST http://localhost:8000/chat \
   -H "Content-Type: application/json" \
-  -d '{"message": "计算 5 + 3"}' | jq .
-# 预期输出:
-# {
-#   "raw_response": "...",
-#   "tools_available": ["add_numbers", "multiply_numbers", "calculate_expression"]
-# }
-
-# 乘法运算（工具调用）
-curl -X POST http://localhost:8000/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "计算 4 * 7"}' | jq .
-# 预期输出:
+  -d '{"message": "Calculate 5 + 3"}' | jq .
+# Expected output:
 # {
 #   "raw_response": "...",
 #   "tools_available": ["add_numbers", "multiply_numbers", "calculate_expression"]
 # }
 
-# 表达式计算（工具调用）
+# Multiplication (tool call)
 curl -X POST http://localhost:8000/chat \
   -H "Content-Type: application/json" \
-  -d '{"message": "计算 2+3*4"}' | jq .
-# 预期输出:
+  -d '{"message": "Calculate 4 * 7"}' | jq .
+# Expected output:
+# {
+#   "raw_response": "...",
+#   "tools_available": ["add_numbers", "multiply_numbers", "calculate_expression"]
+# }
+
+# Expression calculation (tool call)
+curl -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Calculate 2+3*4"}' | jq .
+# Expected output:
 # {
 #   "raw_response": "...",
 #   "tools_available": ["add_numbers", "multiply_numbers", "calculate_expression"]
 # }
 ```
 
-**功能说明**：
-- 🧮 **计算请求**：当用户询问数学计算问题时，LLM 会自动调用相应的工具进行计算
-- 💬 **友好对话**：当用户问候或闲聊时，LLM 会以自然语言友好回复（不会调用工具）
-- 🔍 **智能识别**：LLM 会自动识别用户意图，决定是使用工具还是直接回复
-- ⚡ **快速响应**：最大迭代次数限制为 3 次，确保响应时间合理
-- 📝 **完整响应**：返回完整原始输出（`raw_response`）
+**Functionality**:
+- 🧮 **Calculation Requests**: When user asks math calculation questions, LLM will automatically call corresponding tools for calculation
+- 💬 **Friendly Conversation**: When user greets or chats, LLM will reply naturally and friendly (will not call tools)
+- 🔍 **Smart Recognition**: LLM will automatically recognize user intent, decide whether to use tools or reply directly
+- ⚡ **Fast Response**: Max iterations limited to 3 to ensure reasonable response time
+- 📝 **Complete Response**: Returns complete raw output (`raw_response`)
 
-**替代方案**（如果系统没有安装 `jq`）：
+**Alternative** (if system doesn't have `jq` installed):
 ```bash
 curl -X POST http://localhost:8000/chat \
   -H "Content-Type: application/json" \
-  -d '{"message": "计算 5 + 3"}' | python3 -m json.tool
+  -d '{"message": "Calculate 5 + 3"}' | python3 -m json.tool
 ```
 
-## 项目架构
+## Project Architecture
 
-### 🔍 架构关系
+### 🔍 Architecture Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -285,12 +285,12 @@ curl -X POST http://localhost:8000/chat \
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**关键说明**：
-- **vLLM 服务器**（端口8001）：提供 OpenAI API 兼容接口，处理 LLM 推理请求
-- **FastAPI Chat 服务器**（端口8000）：使用 LangChain Agent，直接定义工具，通过 HTTP 调用 vLLM 服务器
-- **工作流程**：用户请求 → Chat 服务器 → LangChain Agent 分析 → 调用工具 → 调用 vLLM → 返回结果 → 生成最终回复
+**Key Points**:
+- **vLLM Server** (port 8001): Provides OpenAI API compatible interface, handles LLM inference requests
+- **FastAPI Chat Server** (port 8000): Uses LangChain Agent, directly defines tools, calls vLLM server via HTTP
+- **Workflow**: User request → Chat server → LangChain Agent analysis → Call tool → Call vLLM → Return result → Generate final reply
 
-### 🚀 数据流示例
+### 🚀 Data Flow Example
 
 **User Request: "Calculate 25 + 17"**
 
@@ -312,146 +312,145 @@ curl -X POST http://localhost:8000/chat \
    Return: LLM generated response
 
 6. Chat Server → User
-   {"raw_response": "计算结果: 42", "tools_available": [...]}
+   {"raw_response": "Calculation result: 42", "tools_available": [...]}
 ```
 
-## 项目结构
+## Project Structure
 
 ```
 vllm_demo/
-├── Dockerfile              # Chat 服务器 Docker 配置
-├── Dockerfile.vllm        # vLLM 服务器 Docker 配置
-├── docker-compose.yml      # Docker Compose 配置（两个服务：vllm-server + chat-server）
-├── pyproject.toml         # Python 项目配置和依赖（使用 uv 管理）
-├── docker-set-proxy.sh    # 代理配置辅助脚本
-├── build.sh               # 构建脚本（支持环境变量配置）
-├── start_servers.sh       # 本地启动脚本（同时启动两个服务）
-├── env.example            # 环境配置示例文件
-├── chat_server.py         # FastAPI Chat 服务器（端口8000）
-├── models/                # 模型文件目录（Volume 挂载）
-└── README.md              # 使用说明
+├── Dockerfile              # Chat server Docker configuration
+├── Dockerfile.vllm        # vLLM server Docker configuration
+├── docker-compose.yml      # Docker Compose configuration (two services: vllm-server + chat-server)
+├── pyproject.toml         # Python project configuration and dependencies (using uv)
+├── docker-set-proxy.sh    # Proxy configuration helper script
+├── build.sh               # Build script (supports environment variable configuration)
+├── start_servers.sh       # Local startup script (starts both services)
+├── env.example            # Environment configuration example file
+├── chat_server.py         # FastAPI Chat server (port 8000)
+├── models/                # Model files directory (Volume mount)
+└── README.md              # Usage instructions
 ```
 
-## 技术栈
+## Tech Stack
 
-- **vLLM**: >= 0.2.0（高性能 LLM 推理引擎）
-- **LangChain**: >= 0.1.0（Agent 框架和工具管理）
-- **LangChain OpenAI**: >= 0.1.0（OpenAI API 兼容客户端）
-- **AI 模型**: Qwen2.5-1.5B-Instruct（HuggingFace 格式）
-- **Web 框架**: FastAPI >= 0.104.0（Chat 服务器）
-- **HTTP 客户端**: httpx >= 0.25.0
-- **ASGI 服务器**: uvicorn >= 0.24.0
-- **容器化**: Docker + Docker Compose
-- **代理处理**: 自动代理配置脚本
+- **vLLM**: >= 0.2.0 (High-performance LLM inference engine)
+- **LangChain**: >= 0.1.0 (Agent framework and tool management)
+- **LangChain OpenAI**: >= 0.1.0 (OpenAI API compatible client)
+- **AI Model**: Qwen2.5-1.5B-Instruct (HuggingFace format)
+- **Web Framework**: FastAPI >= 0.104.0 (Chat server)
+- **HTTP Client**: httpx >= 0.25.0
+- **ASGI Server**: uvicorn >= 0.24.0
+- **Containerization**: Docker + Docker Compose
+- **Proxy Handling**: Automatic proxy configuration script
 
-## 模型信息
+## Model Information
 
-### Qwen2.5-1.5B-Instruct（默认，推荐）
+### Qwen2.5-1.5B-Instruct (Default, Recommended)
 
-- **参数量**: 1.5B
-- **格式**: HuggingFace（不支持 GGUF）
-- **内存需求**: 约4-6GB RAM（CPU 模式）
-- **工具调用**: 支持原生 tool_calls
-- **推理**: CPU 推理（推荐）或 GPU 推理
-- **速度**: 中等（CPU），适合 CPU 推理
-- **优势**: 开源（Apache 2.0）、模型小、速度快、支持工具调用
+- **Parameters**: 1.5B
+- **Format**: HuggingFace (does not support GGUF)
+- **Memory Requirement**: ~4-6GB RAM (CPU mode)
+- **Tool Calling**: Supports native tool_calls
+- **Inference**: CPU inference (recommended) or GPU inference
+- **Speed**: Medium (CPU), suitable for CPU inference
+- **Advantages**: Open source (Apache 2.0), small model, fast, supports tool calling
 
-## 运行模式
+## Running Modes
 
-项目**默认使用真实LLM模式**，需要下载模型文件才能运行。模型文件会在启动时自动加载，并进行真实的推理计算。
+The project **defaults to real LLM mode**, requires downloading model files to run. Model files will be automatically loaded at startup and perform real inference calculations.
 
-### 真实LLM模式（默认）
+### Real LLM Mode (Default)
 
-项目使用真实的 Qwen2.5-1.5B-Instruct 模型进行推理：
-- ✅ **真实LLM推理**：使用 vLLM 实际调用模型
-- ✅ **智能工具调用**：使用 LangChain ReAct Agent 自动处理工具调用
-- ✅ **原生tool_calls支持**：Qwen2.5-1.5B-Instruct 支持原生 tool_calls
-- ✅ **友好对话**：支持自然语言对话，可以友好回复问候和闲聊
-- ✅ **错误处理**：完善的参数验证和错误提示
-- ⚠️ **需要模型文件**：必须下载模型文件到 `./models/` 目录才能运行
-- ⚠️ **需要 vLLM 服务器**：vLLM 服务器必须独立运行
+The project uses real Qwen2.5-1.5B-Instruct model for inference:
+- ✅ **Real LLM Inference**: Uses vLLM to actually call the model
+- ✅ **Smart Tool Calling**: Uses LangChain ReAct Agent to automatically handle tool calls
+- ✅ **Native tool_calls Support**: Qwen2.5-1.5B-Instruct supports native tool_calls
+- ✅ **Friendly Conversation**: Supports natural language conversation, can reply to greetings and casual chat
+- ✅ **Error Handling**: Comprehensive parameter validation and error messages
+- ⚠️ **Requires Model Files**: Must download model files to `./models/` directory to run
+- ⚠️ **Requires vLLM Server**: vLLM server must run independently
 
-如果模型文件不存在或 vLLM 服务器未运行，服务将无法启动并显示错误信息。
+If model files don't exist or vLLM server is not running, the service will fail to start and display error messages.
 
-## 注意事项
+## Notes
 
-1. **模型文件必需**: 必须下载 Qwen2.5-1.5B-Instruct 模型文件（HuggingFace 格式）到 `./models/` 目录，否则服务无法启动
-2. **内存要求**: 建议至少 4-6GB 可用内存（CPU 模式，取决于模型大小）
-3. **网络连接**: 首次下载模型需要良好的网络连接
-4. **代理环境**: 企业网络环境需要配置代理，详见构建说明
-5. **请求格式**: 使用 curl 时请确保 JSON 使用英文引号，例如 `'{"message": "你好"}'`
-6. **工具调用**: 工具调用由 LangChain Agent 自动处理，无需手工解析或配置
-7. **GPU 支持**: vLLM 主要针对 GPU 优化，CPU 模式性能较差
-8. **模型格式**: vLLM 需要 HuggingFace 格式，不支持 GGUF 格式
-9. **macOS 限制**: vLLM 主要设计用于 Linux + CUDA 环境。在 macOS 上：
-   - vLLM 可能无法正常运行（缺少 CUDA 支持）
-   - 建议在 Linux 系统或支持 CUDA 的环境中运行
-   - 如果必须在 macOS 上运行，可以考虑使用其他 LLM 服务（如 HuggingFace Transformers）
+1. **Model Files Required**: Must download Qwen2.5-1.5B-Instruct model files (HuggingFace format) to `./models/` directory, otherwise service cannot start
+2. **Memory Requirements**: Recommend at least 4-6GB available memory (CPU mode, depends on model size)
+3. **Network Connection**: First-time model download requires good network connection
+4. **Proxy Environment**: Enterprise network environments need proxy configuration, see build instructions
+5. **Request Format**: When using curl, ensure JSON uses English quotes, e.g., `'{"message": "Hello"}'`
+6. **Tool Calling**: Tool calls are automatically handled by LangChain Agent, no manual parsing or configuration needed
+7. **GPU Support**: vLLM is mainly optimized for GPU, CPU mode performance is poor
+8. **Model Format**: vLLM requires HuggingFace format, does not support GGUF format
+9. **macOS Limitations**: vLLM is mainly designed for Linux + CUDA environments. On macOS:
+   - vLLM may not run properly (missing CUDA support)
+   - Recommend running on Linux system or CUDA-supported environment
+   - If must run on macOS, consider using other LLM services (like HuggingFace Transformers)
 
-## 故障排除
+## Troubleshooting
 
-### vLLM 服务器连接失败
+### vLLM Server Connection Failed
 
-如果 Chat 服务器无法连接到 vLLM 服务器：
-1. 确保 vLLM 服务器已启动（`vllm-server` 服务）
-2. 检查 `VLLM_SERVER_URL` 环境变量是否正确（Docker 内部使用 `http://vllm-server:8001/v1`，本地使用 `http://localhost:8001/v1`）
-3. 查看日志确认两个服务都在运行
-4. Chat 服务器启动时会自动重试连接（最多15次，每次间隔2秒）
+If Chat server cannot connect to vLLM server:
+1. Ensure vLLM server is started (`vllm-server` service)
+2. Check `VLLM_SERVER_URL` environment variable is correct (use `http://vllm-server:8001/v1` inside Docker, `http://localhost:8001/v1` locally)
+3. Check logs to confirm both services are running
+4. Chat server will automatically retry connection on startup (max 15 times, 2 seconds interval)
 
-### 模型文件不存在
+### Model Files Don't Exist
 
-如果服务启动失败，提示模型文件不存在：
-1. 确保已下载模型文件到 `./models/` 目录（HuggingFace 格式）
-2. 检查模型路径是否正确（通过 `VLLM_MODEL_NAME` 环境变量配置）
-3. 验证文件权限，确保可读
-4. 查看服务器日志了解详细错误信息
+If service startup fails, prompting model files don't exist:
+1. Ensure model files are downloaded to `./models/` directory (HuggingFace format)
+2. Check model path is correct (configured via `VLLM_MODEL_NAME` environment variable)
+3. Verify file permissions, ensure readable
+4. Check server logs for detailed error information
 
-### GPU 支持
+### GPU Support
 
-如果需要 GPU 支持：
-1. 确保 Docker 支持 GPU（安装 nvidia-docker2）
-2. 在 `docker-compose.yml` 中取消注释 GPU 配置
-3. 确保系统有可用的 NVIDIA GPU
+If GPU support is needed:
+1. Ensure Docker supports GPU (install nvidia-docker2)
+2. Uncomment GPU configuration in `docker-compose.yml`
+3. Ensure system has available NVIDIA GPU
 
-### 内存不足
+### Out of Memory
 
-如果遇到内存不足，可以尝试：
-- 使用更小的量化版本模型
-- 减少 vLLM 的并发请求数
-- 关闭其他占用内存的程序
+If encountering out of memory, you can try:
+- Use smaller quantized version model
+- Reduce vLLM concurrent request count
+- Close other memory-consuming programs
 
-### JSON格式错误
+### JSON Format Error
 
-如果遇到 `400 Bad Request` 或 JSON 格式错误：
-- 确保使用**英文引号**，不要使用中文引号
-- 检查JSON格式是否正确，例如：`'{"message": "你好"}'`
-- 查看错误响应中的详细提示和示例
+If encountering `400 Bad Request` or JSON format error:
+- Ensure to use **English quotes**, don't use Chinese quotes
+- Check JSON format is correct, e.g., `'{"message": "Hello"}'`
+- Check error response for detailed prompts and examples
 
-### 端口冲突
+### Port Conflict
 
-如果端口被占用：
-- **8000 端口（Chat 服务器）**：在 `docker-compose.yml` 中修改 `chat-server` 的端口映射
-- **8001 端口（vLLM 服务器）**：在 `docker-compose.yml` 中修改 `vllm-server` 的端口映射，并更新 `chat_server.py` 中的 `VLLM_SERVER_URL` 环境变量
+If port is occupied:
+- **Port 8000 (Chat server)**: Modify port mapping for `chat-server` in `docker-compose.yml`
+- **Port 8001 (vLLM server)**: Modify port mapping for `vllm-server` in `docker-compose.yml`, and update `VLLM_SERVER_URL` environment variable in `chat_server.py`
 
-## 与原项目的区别
+## Differences from Original Project
 
-### 架构差异
+### Architecture Differences
 
-- **原项目**：FastMCP 服务器（MCP 协议）+ Chat 服务器（LlamaIndex）
-- **新项目**：vLLM 服务器（OpenAI API）+ Chat 服务器（LangChain）
+- **Original Project**: FastMCP server (MCP protocol) + Chat server (LlamaIndex)
+- **New Project**: vLLM server (OpenAI API) + Chat server (LangChain)
 
-### 技术栈差异
+### Tech Stack Differences
 
-- **原项目**：llama-cpp-python + LlamaIndex + FastMCP
-- **新项目**：vLLM + LangChain（直接定义工具，无需 MCP）
+- **Original Project**: llama-cpp-python + LlamaIndex + FastMCP
+- **New Project**: vLLM + LangChain (directly define tools, no MCP needed)
 
-### 模型格式差异
+### Model Format Differences
 
-- **原项目**：GGUF 格式（量化模型）
-- **新项目**：HuggingFace 格式（完整模型或量化版本）
+- **Original Project**: GGUF format (quantized model)
+- **New Project**: HuggingFace format (full model or quantized version)
 
-### 性能差异
+### Performance Differences
 
-- **原项目**：CPU 推理，适合资源受限环境
-- **新项目**：GPU 推理（推荐）或 CPU 推理，高性能，支持并发
-
+- **Original Project**: CPU inference, suitable for resource-constrained environments
+- **New Project**: GPU inference (recommended) or CPU inference, high performance, supports concurrency

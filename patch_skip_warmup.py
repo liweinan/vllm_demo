@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-修复 vLLM CPU warmup：跳过 warmup 阶段以减少内存使用
+Fix vLLM CPU warmup: skip warmup phase to reduce memory usage
 """
 import os
 import sys
 
 def patch_skip_warmup():
-    """在 vLLM 的 cpu_model_runner.py 中跳过 warmup"""
-    # 查找 vllm.v1.worker.cpu_model_runner.py 文件
+    """Skip warmup in vLLM's cpu_model_runner.py"""
+    # Find vllm.v1.worker.cpu_model_runner.py file
     cpu_model_runner_path = None
     for path in sys.path:
         test_path = os.path.join(path, 'vllm', 'v1', 'worker', 'cpu_model_runner.py')
@@ -19,16 +19,16 @@ def patch_skip_warmup():
         print('Warning: vllm.v1.worker.cpu_model_runner.py not found')
         return False
 
-    # 读取文件内容
+    # Read file content
     with open(cpu_model_runner_path, 'r') as f:
         content = f.read()
-
-    # 检查是否已经应用了补丁
+    
+    # Check if patch already applied
     if 'def warming_up_model(self) -> None:' in content and 'logger.info("Skipping warmup to reduce memory usage...")' in content:
         print(f'Patch already applied to {cpu_model_runner_path}')
         return True
-
-    # 查找要替换的代码
+    
+    # Find code to replace
     old_warming_up = '''    def warming_up_model(self) -> None:
         logger.info("Warming up model for the compilation...")
         # Only generate graph for the generic shape
@@ -42,7 +42,7 @@ def patch_skip_warmup():
 
         logger.info("Warming up done.")'''
 
-    # 新的代码（跳过 warmup）
+    # New code (skip warmup)
     new_warming_up = '''    def warming_up_model(self) -> None:
         logger.info("Skipping warmup to reduce memory usage...")
         # Skip warmup to avoid OOM during initialization
@@ -57,14 +57,14 @@ def patch_skip_warmup():
 
         logger.info("Warmup skipped.")'''
 
-    # 替换
+    # Replace
     if old_warming_up in content:
         content = content.replace(old_warming_up, new_warming_up)
     else:
         print(f'Warning: Target code not found in {cpu_model_runner_path}')
         return False
 
-    # 写回文件
+    # Write back to file
     with open(cpu_model_runner_path, 'w') as f:
         f.write(content)
 

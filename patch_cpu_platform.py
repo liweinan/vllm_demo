@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-修复 vLLM CPU 平台检测：添加对 VLLM_TARGET_DEVICE 环境变量的检查
+Fix vLLM CPU platform detection: add check for VLLM_TARGET_DEVICE environment variable
 """
 import os
 import sys
 
 def patch_vllm_platforms():
-    """在 vLLM 的 platforms/__init__.py 中添加 VLLM_TARGET_DEVICE 检查"""
-    # 查找 vllm.platforms.__init__.py 文件
+    """Add VLLM_TARGET_DEVICE check in vLLM's platforms/__init__.py"""
+    # Find vllm.platforms.__init__.py file
     vllm_platforms_path = None
     for path in sys.path:
         test_path = os.path.join(path, 'vllm', 'platforms', '__init__.py')
@@ -19,22 +19,22 @@ def patch_vllm_platforms():
         print('Warning: vllm.platforms.__init__.py not found')
         return False
     
-    # 读取文件内容
+    # Read file content
     with open(vllm_platforms_path, 'r') as f:
         content = f.read()
     
-    # 检查是否已经应用了补丁
+    # Check if patch already applied
     if 'VLLM_TARGET_DEVICE' in content and 'Confirmed CPU platform is available because VLLM_TARGET_DEVICE=cpu' in content:
         print(f'Patch already applied to {vllm_platforms_path}')
         return True
     
-    # 查找要替换的代码
+    # Find code to replace
     old_check = 'is_cpu = vllm_version_matches_substr("cpu")'
     if old_check not in content:
         print(f'Warning: Target code not found in {vllm_platforms_path}')
         return False
     
-    # 新的代码（添加 VLLM_TARGET_DEVICE 检查）
+    # New code (add VLLM_TARGET_DEVICE check)
     new_check = '''# Check if VLLM_TARGET_DEVICE is set to cpu
         import os
         vllm_target_device = os.getenv("VLLM_TARGET_DEVICE", "").lower()
@@ -47,10 +47,10 @@ def patch_vllm_platforms():
         if not is_cpu:
             is_cpu = vllm_version_matches_substr("cpu")'''
     
-    # 替换
+    # Replace
     content = content.replace(old_check, new_check)
     
-    # 写回文件
+    # Write back to file
     with open(vllm_platforms_path, 'w') as f:
         f.write(content)
     
