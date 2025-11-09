@@ -4,6 +4,9 @@ This is a minimal example based on vLLM + LangChain, demonstrating how to build 
 - **vLLM Server**: Provides LLM inference service (via OpenAI API compatible interface)
 - **FastAPI Chat Server**: Provides chat service, using LangChain Agent to automatically handle tool calls
 
+<img width="5120" height="2830" alt="4b387927562ac60e026e640c3c7f60b0" src="https://github.com/user-attachments/assets/508a7240-7702-49a7-a90e-907feaacfd43" />
+
+
 ## Related Projects
 
 - https://github.com/fastapi/fastapi
