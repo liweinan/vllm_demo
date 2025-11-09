@@ -45,6 +45,9 @@ RUN chmod +x /app/start_vllm_server.sh
 # Expose port
 EXPOSE 8001
 
+# Override base image entrypoint to use our startup script
+# The base image may have an ENTRYPOINT that conflicts with our CMD
+ENTRYPOINT []
 # Default command: auto-start vLLM server using startup script
 # Model path is read from VLLM_MODEL_NAME environment variable by the script
 # Port and host can be overridden via docker-compose.yml command
