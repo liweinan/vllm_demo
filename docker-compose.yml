@@ -1,0 +1,67 @@
+services:
+  # vLLM服务器 - 提供LLM推理服务（OpenAI API兼容接口）
+  vllm-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.vllm
+    image: vllm-server:latest
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./models:/app/models
+    environment:
+      - PYTHONUNBUFFERED=1
+      # vLLM 模型路径（通过命令行参数或环境变量配置）
+      - MODEL_PATH=${MODEL_PATH:-/app/models}
+    # 启动 vLLM OpenAI API 服务器
+    # 注意：模型名称和路径需要通过命令行参数指定
+    # 可以通过环境变量 VLLM_MODEL_NAME 配置模型名称
+    command: >
+      python -m vllm.entrypoints.openai.api_server
+      --model ${VLLM_MODEL_NAME:-meta-llama/Llama-3.1-8B-Instruct}
+      --port 8001
+      --host 0.0.0.0
+      --trust-remote-code
+    restart: unless-stopped
+    networks:
+      - vllm-langchain-network
+    # 如果需要 GPU 支持，取消下面的注释
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  # FastAPI Chat服务器 - 提供聊天服务
+  chat-server:
+    build:
+      context: .
+      args:
+        BUILD_PROXY: ${BUILD_PROXY:-}
+    image: vllm-langchain-demo:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models
+    environment:
+      - PYTHONUNBUFFERED=1
+      - VLLM_SERVER_URL=http://vllm-server:8001/v1
+      - VLLM_MODEL_NAME=${VLLM_MODEL_NAME:-meta-llama/Llama-3.1-8B-Instruct}
+      # 清除可能残留的代理环境变量（避免影响容器间通信）
+      - http_proxy=
+      - https_proxy=
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+    command: /app/.venv/bin/python chat_server.py
+    depends_on:
+      - vllm-server
+    restart: unless-stopped
+    networks:
+      - vllm-langchain-network
+
+networks:
+  vllm-langchain-network:
+    driver: bridge
+

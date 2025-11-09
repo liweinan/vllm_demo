@@ -1,0 +1,18 @@
+# vLLM 服务 Dockerfile
+# 使用 vLLM 官方镜像作为基础
+FROM vllm/vllm-openai:latest
+
+# 设置工作目录
+WORKDIR /app
+
+# 创建模型目录
+RUN mkdir -p /app/models
+
+# 暴露端口
+# 8001: vLLM OpenAI API 兼容接口
+EXPOSE 8001
+
+# 默认启动命令（可以通过 docker-compose.yml 覆盖）
+# 模型路径和端口通过环境变量或命令行参数配置
+CMD ["python", "-m", "vllm.entrypoints.openai.api_server", "--host", "0.0.0.0", "--port", "8001"]
+
