@@ -1,9 +1,16 @@
 services:
   # vLLM服务器 - 提供LLM推理服务（OpenAI API兼容接口）
+  # 根据官方文档：https://docs.vllm.ai/en/stable/getting_started/installation/cpu.html
+  # 注意：
+  # - 在 macOS (ARM64) 上，需要 platform: linux/amd64 通过 Rosetta 2 运行 x86_64 容器
+  # - 在 Linux x86_64 上，不需要 platform 限制，使用原生架构
   vllm-server:
+    # platform: linux/amd64  # 仅在 macOS 上需要，Linux x86_64 上注释掉
     build:
       context: .
       dockerfile: Dockerfile.vllm
+      args:
+        BUILD_PROXY: ${BUILD_PROXY:-}
     image: vllm-server:latest
     ports:
       - "8001:8001"
@@ -11,21 +18,29 @@ services:
       - ./models:/app/models
     environment:
       - PYTHONUNBUFFERED=1
-      # vLLM 模型路径（通过命令行参数或环境变量配置）
-      - MODEL_PATH=${MODEL_PATH:-/app/models}
-    # 启动 vLLM OpenAI API 服务器
-    # 注意：模型名称和路径需要通过命令行参数指定
-    # 可以通过环境变量 VLLM_MODEL_NAME 配置模型名称
+      # vLLM CPU 配置（根据官方文档）
+      - VLLM_CPU_KVCACHE_SPACE=4  # KV Cache 空间（GB），默认 4GB
+      - VLLM_CPU_OMP_THREADS_BIND=auto  # 自动绑定 CPU 核心
+      - VLLM_CPU_NUM_OF_RESERVED_CPU=1  # 为框架保留 1 个 CPU 核心
+    # Docker 权限配置（根据官方文档，解决 NUMA 相关权限问题）
+    security_opt:
+      - seccomp=unconfined
+    cap_add:
+      - SYS_NICE
+    shm_size: 4g  # 共享内存大小
+    # 启动 vLLM OpenAI API 服务器（CPU 模式）
+    # 根据官方文档，使用 vllm serve 命令，并指定 dtype=bfloat16
     command: >
       python -m vllm.entrypoints.openai.api_server
       --model ${VLLM_MODEL_NAME:-meta-llama/Llama-3.1-8B-Instruct}
       --port 8001
       --host 0.0.0.0
       --trust-remote-code
+      --dtype bfloat16
     restart: unless-stopped
     networks:
       - vllm-langchain-network
-    # 如果需要 GPU 支持，取消下面的注释
+    # 如果需要 GPU 支持，取消下面的注释并移除 CPU 相关配置
     # deploy:
     #   resources:
     #     reservations:

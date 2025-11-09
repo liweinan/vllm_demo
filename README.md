@@ -35,6 +35,27 @@
 
 ## 快速开始
 
+### ⚠️ macOS (Apple Silicon) 用户注意
+
+**重要**：在 macOS (ARM64) 上运行 vLLM CPU 版本需要特殊配置：
+
+1. **架构兼容性**：
+   - vLLM CPU 版本主要支持 x86_64 架构
+   - macOS 通过 `platform: linux/amd64` 使用 Rosetta 2 仿真运行 x86_64 容器
+   - 性能可能比原生 Linux 稍慢
+
+2. **Docker 配置**：
+   - 确保 Docker Desktop 已启用 "Use Rosetta for x86/amd64 emulation"
+   - `docker-compose.yml` 中已配置 `platform: linux/amd64`
+
+3. **构建 CPU 镜像**：
+   - `Dockerfile.vllm` 会从源码构建 CPU 版本（首次构建需要 30-60 分钟）
+   - 或使用预构建的 CPU 镜像（如果可用）
+
+4. **替代方案**：
+   - 如果 vLLM CPU 构建失败，考虑使用其他 CPU 友好的推理引擎
+   - 或在 Linux 服务器或云 GPU 上运行
+
 ### 1. 下载模型
 
 项目使用 **Llama 3.1 8B-Instruct** 模型（HuggingFace 格式）。
@@ -353,6 +374,10 @@ vllm_demo/
 6. **工具调用**: 工具调用由 LangChain Agent 自动处理，无需手工解析或配置
 7. **GPU 支持**: vLLM 主要针对 GPU 优化，CPU 模式性能较差
 8. **模型格式**: vLLM 需要 HuggingFace 格式，不支持 GGUF 格式
+9. **macOS 限制**: vLLM 主要设计用于 Linux + CUDA 环境。在 macOS 上：
+   - vLLM 可能无法正常运行（缺少 CUDA 支持）
+   - 建议在 Linux 系统或支持 CUDA 的环境中运行
+   - 如果必须在 macOS 上运行，可以考虑使用其他 LLM 服务（如 HuggingFace Transformers）
 
 ## 故障排除
 

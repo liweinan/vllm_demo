@@ -6,12 +6,13 @@ import logging
 import os
 import re
 from contextlib import asynccontextmanager
-from typing import List, Optional
+from typing import List, Optional, Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from langchain.agents import AgentExecutor, create_react_agent
-from langchain.tools import StructuredTool
+# LangChain 导入 - 使用 langchain_classic（根据源代码）
+from langchain_classic.agents import AgentExecutor, create_react_agent
+from langchain_core.tools import StructuredTool
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 from pydantic import BaseModel
@@ -51,8 +52,8 @@ app.add_middleware(
 )
 
 # 全局Agent实例
-agent_executor: Optional[AgentExecutor] = None
-tools: List[StructuredTool] = []
+agent_executor: Optional[Any] = None
+tools: List[Any] = []
 
 # vLLM服务器配置
 vllm_server_url = os.getenv("VLLM_SERVER_URL", "http://vllm-server:8001/v1")
@@ -235,13 +236,15 @@ CRITICAL RULES - 必须严格遵守：
 - 对同一个计算问题调用多个工具"""
     
     # 使用内置的 ReAct prompt（不依赖 langchain-hub）
-    prompt = PromptTemplate.from_template("""你是一个友善的数学计算助手。
+    # 注意：{tools}, {tool_names}, {agent_scratchpad}, {input} 由 create_react_agent 自动处理
+    # 我们只需要部分填充 system_prompt
+    prompt_template = """你是一个友善的数学计算助手。
 
 {system_prompt}
 
 你有访问以下工具：
 
-{{tools}}
+{tools}
 
 使用以下格式：
 
@@ -256,10 +259,15 @@ Final Answer: 对原始输入问题的最终答案
 
 开始！
 
-Question: {{input}}
-Thought: {{agent_scratchpad}}""".format(system_prompt=system_prompt))
+Question: {input}
+Thought: {agent_scratchpad}"""
     
-    # 创建ReAct Agent
+    prompt = PromptTemplate.from_template(prompt_template)
+    # 部分填充 system_prompt，其他变量由 create_react_agent 处理
+    prompt = prompt.partial(system_prompt=system_prompt)
+    
+    # 创建ReAct Agent（使用 langchain_classic，根据源代码）
+    # 根据源代码：create_react_agent 返回一个 Runnable，需要配合 AgentExecutor 使用
     agent = create_react_agent(llm, tools, prompt)
     
     # 创建AgentExecutor
