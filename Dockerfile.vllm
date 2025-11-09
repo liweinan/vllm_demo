@@ -45,6 +45,7 @@ RUN chmod +x /app/start_vllm_server.sh
 # Expose port
 EXPOSE 8001
 
-# Default command: start bash shell to keep container running, convenient for manual container debugging
-# After entering container, can manually copy and execute startup script, or run commands directly
-CMD ["/bin/bash"]
+# Default command: auto-start vLLM server using startup script
+# Model path is read from VLLM_MODEL_NAME environment variable by the script
+# Port and host can be overridden via docker-compose.yml command
+CMD ["/app/start_vllm_server.sh", "8001", "0.0.0.0"]

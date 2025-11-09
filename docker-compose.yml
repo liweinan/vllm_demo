@@ -25,7 +25,9 @@ services:
       - VLLM_CPU_KVCACHE_SPACE=2  # KV Cache space (GB), reduced to 2GB to reduce memory usage
       - VLLM_CPU_OMP_THREADS_BIND=auto  # Auto bind CPU cores
       - VLLM_CPU_NUM_OF_RESERVED_CPU=1  # Reserve 1 CPU core for framework
-      - VLLM_LOGGING_LEVEL=DEBUG  # Use DEBUG level for platform detection diagnostics
+      - VLLM_LOGGING_LEVEL=INFO  # Use INFO level for normal operation
+      # Model path (local path in container)
+      - VLLM_MODEL_NAME=${VLLM_MODEL_NAME:-/app/models/qwen2.5-1.5b-instruct}
       # HuggingFace offline mode, force using local files, avoid network download
       - HF_HUB_OFFLINE=1
       - TRANSFORMERS_OFFLINE=1
@@ -43,15 +45,9 @@ services:
           memory: 12G
         reservations:
           memory: 10G
-    # Don't auto-start service, convenient for manual container debugging
-    # Override base image entrypoint, use bash to keep container running
-    entrypoint: ["/bin/bash"]
-    stdin_open: true  # Keep STDIN open
-    tty: true  # Allocate pseudo-TTY
-    # After entering container, can execute:
-    #   /app/start_vllm_server.sh /app/models/qwen2.5-1.5b-instruct 8001 0.0.0.0
-    # Or directly:
-    #   python -m vllm.entrypoints.openai.api_server /app/models/qwen2.5-1.5b-instruct --port 8001 --host 0.0.0.0 --trust-remote-code --dtype bfloat16
+    # Auto-start vLLM server using startup script
+    # Model path is read from VLLM_MODEL_NAME environment variable by the script
+    command: ["/app/start_vllm_server.sh", "8001", "0.0.0.0"]
     restart: unless-stopped
     networks:
       - vllm-langchain-network
@@ -78,7 +74,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - VLLM_SERVER_URL=http://vllm-server:8001/v1
-      - VLLM_MODEL_NAME=${VLLM_MODEL_NAME:-Qwen/Qwen2.5-1.5B-Instruct}
+      - VLLM_MODEL_NAME=${VLLM_MODEL_NAME:-/app/models/qwen2.5-1.5b-instruct}
       # Clear potentially leftover proxy environment variables (avoid affecting inter-container communication)
       - http_proxy=
       - https_proxy=

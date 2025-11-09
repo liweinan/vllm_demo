@@ -4,7 +4,8 @@
 
 set -e
 
-MODEL_PATH="${1:-/app/models/qwen2.5-1.5b-instruct}"
+# Get model path from environment variable or command line argument, with default fallback
+MODEL_PATH="${VLLM_MODEL_NAME:-${1:-/app/models/qwen2.5-1.5b-instruct}}"
 PORT="${2:-8001}"
 HOST="${3:-0.0.0.0}"
 
