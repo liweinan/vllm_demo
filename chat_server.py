@@ -140,19 +140,45 @@ async def init_agent():
     tool_add = StructuredTool.from_function(
         func=add_numbers,
         name="add_numbers",
-        description="Calculate the sum of two numbers. Only use when user explicitly requests addition calculation. Parameters: a (float): first number, b (float): second number"
+        description="""Calculate the sum of two numbers.
+
+IMPORTANT: Only use this tool when the user explicitly requests addition calculation. For greetings, casual chat, or non-mathematical questions, DO NOT use this tool.
+
+Args:
+    a: First number
+    b: Second number
+
+Returns:
+    Sum of the two numbers"""
     )
     
     tool_multiply = StructuredTool.from_function(
         func=multiply_numbers,
         name="multiply_numbers",
-        description="Calculate the product of two numbers. Only use when user explicitly requests multiplication calculation. Parameters: a (float): first number, b (float): second number"
+        description="""Calculate the product of two numbers.
+
+IMPORTANT: Only use this tool when the user explicitly requests multiplication calculation. For greetings, casual chat, or non-mathematical questions, DO NOT use this tool.
+
+Args:
+    a: First number
+    b: Second number
+
+Returns:
+    Product of the two numbers"""
     )
     
     tool_calculate = StructuredTool.from_function(
         func=calculate_expression,
         name="calculate_expression",
-        description="Calculate a mathematical expression. Expression must only contain numbers and basic operators (+, -, *, /, parentheses). Only use when user explicitly requests calculation of a mathematical expression. Parameter: expression (str): mathematical expression string, e.g., '2+3*4'"
+        description="""Calculate a mathematical expression. The expression must only contain numbers and basic operators (+, -, *, /, parentheses).
+
+IMPORTANT: Only use this tool when the user explicitly requests calculation of a mathematical expression. The expression parameter must be a valid mathematical expression string (e.g., '2+3*4'), not a greeting, text, or other non-mathematical content. For greetings, casual chat, or non-mathematical questions, DO NOT use this tool.
+
+Args:
+    expression: Mathematical expression string, must only contain numbers, operators, and parentheses, e.g., '2+3*4', '10/2', etc.
+
+Returns:
+    Calculation result as float"""
     )
     
     tools = [tool_add, tool_multiply, tool_calculate]
@@ -205,35 +231,55 @@ async def init_agent():
     logger.info("Creating LangChain ReAct Agent...")
     
     # System prompt clearly guides Agent when to use tools
+    # Reference: mcp_server.py tool descriptions to avoid infinite tool calls
     system_prompt = """You are a friendly math calculation assistant.
 
-CRITICAL RULES - Must strictly follow:
-1. If the user says greetings (like "hello", "hi", etc.), directly reply friendly, absolutely do not call any tools
-2. If the user's question doesn't involve math calculation, directly answer, do not call tools
-3. Only use tools when the user explicitly requests math calculation
-4. **Most important**: Call at most one tool per request. After calling a tool and getting the result, must immediately return the final answer and end processing, absolutely do not call any tools again or continue iterating
+CRITICAL RULES - Must strictly follow (these rules prevent infinite tool calls):
 
-Workflow (strictly follow):
-- Step 1: Analyze user request, decide if calculation is needed
-- Step 2: If calculation is needed, call one tool (add_numbers, multiply_numbers, or calculate_expression)
-- Step 3: After getting tool result, immediately generate final reply and end, format: "The answer is [result]" or "Calculation result is [result]"
-- **Never proceed to Step 4**: Do not call tools again, do not continue iterating
+1. **DO NOT USE TOOLS FOR GREETINGS OR CASUAL CHAT**:
+   - If the user says greetings (like "hello", "hi", "你好", etc.), directly reply friendly, absolutely do not call any tools
+   - If the user's question doesn't involve math calculation, directly answer, do not call tools
+   - Examples of non-math questions: greetings, asking "how are you", asking about the weather, asking what you can do, etc.
 
-Available tools (only use when math calculation is needed, and each calculation can only be called once):
-- add_numbers(a, b): Add two numbers
-- multiply_numbers(a, b): Multiply two numbers
-- calculate_expression(expression): Calculate mathematical expression (only supports numbers and basic operators, like +-*/)
+2. **ONLY USE TOOLS FOR EXPLICIT MATH CALCULATION REQUESTS**:
+   - Only use tools when the user explicitly requests math calculation
+   - The user must clearly ask for calculation (e.g., "calculate", "compute", "what is X + Y", "计算", etc.)
+   - If the user's intent is unclear, ask for clarification instead of calling tools
+
+3. **CALL EXACTLY ONE TOOL PER REQUEST - THEN STOP**:
+   - **Most important**: Call at most ONE tool per request
+   - After calling a tool and getting the result, immediately return the final answer and END processing
+   - Format: "The answer is [result]" or "Calculation result is [result]" or "答案是 [result]"
+   - **DO NOT** call any tools again after getting a result
+   - **DO NOT** continue iterating after getting a result
+
+Workflow (strictly follow - this prevents infinite loops):
+- Step 1: Analyze user request
+  - If it's a greeting or non-math question → directly reply friendly, END (do not use tools)
+  - If it's a math calculation request → proceed to Step 2
+- Step 2: If calculation is needed, call ONE tool (add_numbers, multiply_numbers, or calculate_expression)
+- Step 3: After getting tool result, immediately generate final reply and END
+  - Format: "The answer is [result]" or "答案是 [result]"
+  - **STOP HERE** - do not proceed further
+- **NEVER proceed to Step 4**: Do not call tools again, do not continue iterating
+
+Available tools (only use when math calculation is explicitly requested):
+- add_numbers(a, b): Add two numbers. IMPORTANT: Only use when user explicitly requests addition.
+- multiply_numbers(a, b): Multiply two numbers. IMPORTANT: Only use when user explicitly requests multiplication.
+- calculate_expression(expression): Calculate mathematical expression (only supports numbers and basic operators, like +-*/). IMPORTANT: Only use when user explicitly requests expression calculation.
 
 Correct examples (these are just explanations, do not execute):
-- If user says greeting → directly reply friendly, do not use tools
-- If user says "Calculate X + Y" → call add_numbers(X, Y) once, immediately reply and end after getting result
-- If user says "X * Y" → call multiply_numbers(X, Y) once, immediately reply and end after getting result
-- If user provides mathematical expression string → call calculate_expression(expression) once, immediately reply and end after getting result
+- User says "你好" or "hello" → directly reply "你好！我是数学计算助手..." (do not use tools)
+- User says "Calculate 5 + 3" → call add_numbers(5, 3) once, get result 8, reply "The answer is 8", END
+- User says "4 * 7" → call multiply_numbers(4, 7) once, get result 28, reply "The answer is 28", END
+- User says "计算 2+3*4" → call calculate_expression("2+3*4") once, get result 14, reply "答案是 14", END
 
-**Absolutely forbidden**:
-- Calling any tools again after calling a tool
+**ABSOLUTELY FORBIDDEN** (these cause infinite loops):
+- Calling any tools for greetings or non-math questions
+- Calling any tools again after calling a tool and getting a result
 - Continuing iteration after getting tool result
-- Calling multiple tools for the same calculation problem"""
+- Calling multiple tools for the same calculation problem
+- Calling tools when user intent is unclear (ask for clarification instead)"""
     
     # Use built-in ReAct prompt (doesn't depend on langchain-hub)
     # Note: {tools}, {tool_names}, {agent_scratchpad}, {input} are automatically handled by create_react_agent
@@ -271,12 +317,19 @@ Thought: {agent_scratchpad}"""
     agent = create_react_agent(llm, tools, prompt)
     
     # Create AgentExecutor
+    # For small models (1.5B), we need more iterations to handle format errors
+    # - Iteration 1: Thought + Action (may have format errors)
+    # - Iteration 2: Retry or Observation + Thought
+    # - Iteration 3: Final Answer
+    # max_iterations=3 allows for one retry if format parsing fails
     agent_executor = AgentExecutor(
         agent=agent,
         tools=tools,
         verbose=True,
-        max_iterations=3,  # Max iterations to avoid long response time
+        max_iterations=3,  # Allow 3 iterations for small models that may have format issues
         handle_parsing_errors=True,  # Handle parsing errors
+        return_intermediate_steps=False,  # Don't return intermediate steps to avoid confusion
+        max_execution_time=30,  # Max execution time in seconds
     )
     
     logger.info("Agent initialization complete, tool calls will be automatically handled by LangChain")
