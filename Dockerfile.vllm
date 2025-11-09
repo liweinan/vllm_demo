@@ -1,72 +1,26 @@
 # vLLM CPU 服务 Dockerfile
 # 根据官方文档：https://docs.vllm.ai/en/stable/getting_started/installation/cpu.html
-# 从源码构建 vLLM CPU 版本
-# 注意：构建时间可能较长（30分钟-1小时）
+# 
+# 方案1：使用本地构建的 vLLM CPU 镜像（推荐，如果已构建）
+FROM vllm-cpu-env:latest
 
-FROM python:3.11-slim
-
-# 代理配置参数
-ARG BUILD_PROXY
-
-# 配置 apt 代理（如果需要）
-# 注意：如果使用 localhost，需要确保代理监听 0.0.0.0 或使用 Docker 网关 IP
-RUN if [ -n "$BUILD_PROXY" ]; then \
-        if echo "$BUILD_PROXY" | grep -q "localhost"; then \
-            # 优先尝试 host.docker.internal，如果不可用，使用 Docker 默认网关
-            # 对于 macOS，host.docker.internal 应该可用
-            BUILD_PROXY_CONVERTED=$(echo "$BUILD_PROXY" | sed 's|localhost|host.docker.internal|g'); \
-        elif echo "$BUILD_PROXY" | grep -q "127.0.0.1"; then \
-            # 如果使用 127.0.0.1，转换为 host.docker.internal
-            BUILD_PROXY_CONVERTED=$(echo "$BUILD_PROXY" | sed 's|127.0.0.1|host.docker.internal|g'); \
-        else \
-            BUILD_PROXY_CONVERTED="$BUILD_PROXY"; \
-        fi && \
-        echo "配置 apt 代理: $BUILD_PROXY_CONVERTED" && \
-        echo "Acquire::http::Proxy \"$BUILD_PROXY_CONVERTED\";" > /etc/apt/apt.conf.d/01proxy && \
-        echo "Acquire::https::Proxy \"$BUILD_PROXY_CONVERTED\";" >> /etc/apt/apt.conf.d/01proxy && \
-        echo "Acquire::Retries \"10\";" >> /etc/apt/apt.conf.d/01proxy && \
-        echo "Acquire::http::Timeout \"120\";" >> /etc/apt/apt.conf.d/01proxy && \
-        echo "Acquire::https::Timeout \"120\";" >> /etc/apt/apt.conf.d/01proxy; \
-    fi
-
-# 安装系统依赖
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    g++ \
-    libnuma-dev \
-    python3-dev \
-    git \
-    cmake \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+# 方案2：从源码构建（如果本地镜像不可用，取消下面的注释并注释掉上面的 FROM）
+# FROM python:3.11-slim
+# ARG BUILD_PROXY
+# RUN apt-get update && apt-get install -y --no-install-recommends \
+#     gcc g++ libnuma-dev python3-dev git cmake build-essential \
+#     && rm -rf /var/lib/apt/lists/*
+# WORKDIR /app
+# RUN git clone https://github.com/vllm-project/vllm.git vllm_source && \
+#     cd vllm_source && \
+#     pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu && \
+#     pip install --no-cache-dir -r requirements/cpu-build.txt && \
+#     pip install --no-cache-dir -r requirements/cpu.txt && \
+#     VLLM_TARGET_DEVICE=cpu pip install . --no-build-isolation && \
+#     cd .. && rm -rf vllm_source
 
 # 设置工作目录
 WORKDIR /app
-
-# 配置 git 和 pip 代理（如果需要）
-RUN if [ -n "$BUILD_PROXY" ]; then \
-        if echo "$BUILD_PROXY" | grep -q "localhost"; then \
-            BUILD_PROXY_CONVERTED=$(echo "$BUILD_PROXY" | sed 's|localhost|host.docker.internal|g'); \
-        elif echo "$BUILD_PROXY" | grep -q "127.0.0.1"; then \
-            BUILD_PROXY_CONVERTED=$(echo "$BUILD_PROXY" | sed 's|127.0.0.1|host.docker.internal|g'); \
-        else \
-            BUILD_PROXY_CONVERTED="$BUILD_PROXY"; \
-        fi && \
-        git config --global http.proxy "$BUILD_PROXY_CONVERTED" && \
-        git config --global https.proxy "$BUILD_PROXY_CONVERTED" && \
-        pip config set global.proxy "$BUILD_PROXY_CONVERTED"; \
-    fi
-
-# 克隆 vLLM 源码并构建 CPU 版本
-# 注意：使用 pip 安装，需要先安装 torch CPU 版本
-RUN git clone https://github.com/vllm-project/vllm.git vllm_source && \
-    cd vllm_source && \
-    pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu && \
-    pip install --no-cache-dir -r requirements/cpu-build.txt && \
-    pip install --no-cache-dir -r requirements/cpu.txt && \
-    VLLM_TARGET_DEVICE=cpu pip install . --no-build-isolation && \
-    cd .. && \
-    rm -rf vllm_source
 
 # 创建模型目录
 RUN mkdir -p /app/models
