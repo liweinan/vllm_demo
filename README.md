@@ -18,6 +18,10 @@ This is a minimal example based on vLLM + LangChain, demonstrating how to build 
 
 - https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct
 
+## Docker Iamge
+
+- https://hub.docker.com/repository/docker/weli/vllm-cpu-env/general
+
 ## Reference Documentation
 
 - https://docs.vllm.ai/
